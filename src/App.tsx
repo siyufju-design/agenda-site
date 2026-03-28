@@ -118,6 +118,7 @@ export default function App() {
   }, [filteredSessions]);
 
   const currentDay = dayOptions.find((d) => d.key === selectedDay)!;
+  const mobileTimelineWidth = "calc(100vw - 48px)";
 
   return (
     <div
@@ -178,7 +179,7 @@ export default function App() {
           <p style={{ color: "#7a7f86", margin: 0 }}>同時有多場次時會往右延伸，支援左右滑動查看。</p>
         </div>
 
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 18 }}>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 18, overflowX: isMobile ? "auto" : "visible", paddingBottom: isMobile ? 4 : 0 }}>
           {dayOptions.map((day) => (
             <button
               key={day.key}
@@ -203,7 +204,7 @@ export default function App() {
           style={{
             display: "grid",
             gap: 16,
-            gridTemplateColumns: "minmax(240px, 320px) 1fr",
+            gridTemplateColumns: isMobile ? "1fr" : "minmax(240px, 320px) 1fr",
             marginBottom: 22,
           }}
         >
@@ -252,36 +253,52 @@ export default function App() {
               key={time}
               style={{
                 display: "grid",
-                gridTemplateColumns: isMobile ? "120px 1fr" : "190px 1fr",
-                gap: isMobile ? 12 : 18,
+                gridTemplateColumns: isMobile ? "1fr" : "190px 1fr",
+                gap: isMobile ? 10 : 18,
                 alignItems: "start",
               }}
             >
-              <div style={{ position: "relative", minHeight: isMobile ? 120 : 160 }}>
-                <div style={{ fontSize: isMobile ? 22 : 30, fontWeight: 800, lineHeight: 1 }}>{time}</div>
-                <div style={{ fontSize: 13, color: "#8b8f93", marginTop: 8 }}>開始時間</div>
+              <div
+                style={{
+                  position: "relative",
+                  minHeight: isMobile ? "auto" : 160,
+                  display: isMobile ? "flex" : "block",
+                  alignItems: isMobile ? "center" : undefined,
+                  gap: isMobile ? 12 : undefined,
+                  paddingLeft: isMobile ? 6 : 0,
+                }}
+              >
+                <div style={{ fontSize: isMobile ? 22 : 30, fontWeight: 800, lineHeight: 1 }}>
+                  {time}
+                </div>
+                <div style={{ fontSize: 13, color: "#8b8f93", marginTop: isMobile ? 0 : 8 }}>
+                  開始時間
+                </div>
                 <div
                   style={{
-                    position: "absolute",
-                    right: isMobile ? 6 : 12,
-                    top: 2,
+                    position: isMobile ? "relative" : "absolute",
+                    right: isMobile ? "auto" : 12,
+                    top: isMobile ? "auto" : 2,
                     width: isMobile ? 12 : 18,
                     height: isMobile ? 12 : 18,
                     borderRadius: 999,
                     background: "#233852",
-                    boxShadow: "0 0 0 6px #e5e0d6",
+                    boxShadow: isMobile ? "0 0 0 4px #e5e0d6" : "0 0 0 6px #e5e0d6",
+                    marginLeft: isMobile ? 4 : 0,
                   }}
                 />
                 {groupIndex !== groupedByTime.length - 1 ? (
                   <div
                     style={{
-                      position: "absolute",
-                      right: isMobile ? 12 : 20,
-                      top: 24,
-                      bottom: -42,
-                      width: isMobile ? 2 : 3,
+                      position: isMobile ? "relative" : "absolute",
+                      right: isMobile ? "auto" : 20,
+                      top: isMobile ? "auto" : 24,
+                      bottom: isMobile ? "auto" : -42,
+                      width: isMobile ? 36 : 3,
+                      height: isMobile ? 2 : "auto",
                       borderRadius: 999,
                       background: "#c9cfda",
+                      marginLeft: isMobile ? 2 : 0,
                     }}
                   />
                 ) : null}
@@ -290,14 +307,21 @@ export default function App() {
               <div
                 style={{
                   overflowX: "auto",
-                  paddingBottom: 4,
+                  paddingBottom: 6,
+                  marginLeft: isMobile ? 0 : undefined,
                 }}
               >
                 <div
                   style={{
                     display: "flex",
                     gap: isMobile ? 12 : 18,
-                    minWidth: items.length > 1 ? `${items.length * 360}px` : "unset",
+                    minWidth: isMobile
+                      ? items.length > 1
+                        ? `${items.length * 264}px`
+                        : mobileTimelineWidth
+                      : items.length > 1
+                        ? `${items.length * 360}px`
+                        : "unset",
                     alignItems: "stretch",
                   }}
                 >
@@ -308,7 +332,11 @@ export default function App() {
                         key={session.id}
                         onClick={() => setSelectedSession(session)}
                         style={{
-                          flex: isMobile ? "0 0 260px" : "0 0 340px",
+                          flex: isMobile
+                            ? items.length > 1
+                              ? "0 0 252px"
+                              : "0 0 100%"
+                            : "0 0 340px",
                           minHeight: isMobile ? 140 : 170,
                           textAlign: "left",
                           background: "#f8f6f2",
@@ -317,6 +345,7 @@ export default function App() {
                           padding: isMobile ? 16 : 22,
                           cursor: "pointer",
                           boxShadow: "0 10px 20px rgba(107,116,130,0.08)",
+                          boxSizing: "border-box",
                         }}
                       >
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
