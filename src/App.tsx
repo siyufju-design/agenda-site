@@ -1,130 +1,936 @@
 import React, { useMemo, useState } from "react";
 
-type DayKey = "day1" | "day2";
-type SessionType = "專題演講" | "實務工作坊" | "學術研討會" | "開放式議程" | "研究生代表會" | "大師對談" | "會員大會" | "專題論壇" | "口頭報告";
+type DayKey = "0424" | "0425" | "0426";
 
-type Session = {
+type Duty = {
   id: string;
   day: DayKey;
-  title: string;
-  speaker: string;
   start: string;
   end: string;
-  room: string;
-  track: string;
-  type: SessionType;
-  description: string;
-  note?: string;
+  location: string;
+  people: string[];
+  task: string;
+  detail: string;
+  backup?: string;
 };
 
 const dayOptions = [
-  { key: "day1" as const, label: "DAY 1", date: "115.04.25（星期六）" },
-  { key: "day2" as const, label: "DAY 2", date: "115.04.26（星期日）" },
+  { key: "0424" as const, label: "4/24（前置）" },
+  { key: "0425" as const, label: "4/25（六）" },
+  { key: "0426" as const, label: "4/26（日）" },
 ];
 
-const typeColors: Record<SessionType, { bg: string; text: string; border: string }> = {
-  專題演講: { bg: "#c8d5d1", text: "#425a52", border: "#b3c4be" },
-  實務工作坊: { bg: "#d9c8bc", text: "#6a5648", border: "#cdb7a8" },
-  學術研討會: { bg: "#c9d4df", text: "#495d72", border: "#b3c1cf" },
-  開放式議程: { bg: "#ddd8d1", text: "#5f5a54", border: "#cfc8bf" },
-  研究生代表會: { bg: "#d7cfdf", text: "#5d556a", border: "#c7bdd1" },
-  大師對談: { bg: "#c7d8cc", text: "#47614f", border: "#b3c8ba" },
-  會員大會: { bg: "#d8d1c2", text: "#675e4e", border: "#cbc1ad" },
-  專題論壇: { bg: "#d4c9c2", text: "#66554a", border: "#c5b5ab" },
-  口頭報告: { bg: "#c8d0d8", text: "#4d5c6a", border: "#b3bec8" },
-};
-
-const sessions: Session[] = [
-  { id: "day1-checkin", day: "day1", title: "報到", speaker: "", start: "08:20", end: "08:50", room: "國璽樓一樓大廳", track: "其他", type: "開放式議程", description: "與會者報到與入場。" },
-  { id: "day1-opening", day: "day1", title: "開幕式", speaker: "理事長、長官、貴賓致詞", start: "08:50", end: "09:30", room: "一樓國際會議廳", track: "主會場", type: "開放式議程", description: "理事長、長官與貴賓致詞。" },
-  { id: "day1-keynote-1", day: "day1", title: "專題演講（一）｜The Current State of Mental Health Technology and Artificial Intelligence", speaker: "主講人：Dr. Vaile Wright｜主持人：楊建銘", start: "09:30", end: "11:00", room: "一樓國際會議廳", track: "主會場", type: "專題演講", description: "聚焦心理健康科技與人工智慧的現況。" },
-  { id: "day1-break-1", day: "day1", title: "中場休息、茶敘交流", speaker: "", start: "11:00", end: "11:20", room: "國璽樓一二樓大廳", track: "其他", type: "開放式議程", description: "中場休息與茶敘交流。" },
-  { id: "day1-member-meeting", day: "day1", title: "會員大會", speaker: "", start: "11:20", end: "12:20", room: "一樓國際會議廳", track: "主會場", type: "會員大會", description: "台灣臨床心理學會會員大會。" },
-  { id: "day1-grad-sharing", day: "day1", title: "研究生代表會｜實習督導分享（成人精神專長）", speaker: "高振傑 臨床心理師", start: "12:00", end: "13:00", room: "MD214", track: "MD214", type: "研究生代表會", description: "台臨心研究生代表會安排之實習督導分享。" },
-  { id: "day1-vendor-1", day: "day1", title: "科技廠商分享會", speaker: "", start: "11:20", end: "13:00", room: "MD167", track: "MD167", type: "開放式議程", description: "科技廠商分享會。" },
-  { id: "day1-lunch-poster", day: "day1", title: "午餐休息／壁報論文交流與評審", speaker: "", start: "12:20", end: "13:00", room: "MD171／國璽樓二樓大廳", track: "其他", type: "開放式議程", description: "午餐休息時間，並同步進行壁報論文交流與評審。" },
-  { id: "day1-keynote-2-legal", day: "day1", title: "專題演講（二）法律課程｜助人者的界線與法律風險", speaker: "主講人：吳志光｜主持人：黃健", start: "13:00", end: "14:00", room: "一樓國際會議廳", track: "主會場", type: "專題演講", description: "從性平三法修法切入醫療場域的權勢性騷擾議題。" },
-  { id: "day1-ws-branding", day: "day1", title: "實務工作坊｜行動心理師的實務挑戰、品牌經營與客群建立", speaker: "主持人：陳牧柔｜講者：黃惠欣、陳牧柔、吳蕙君、張榮斌", start: "14:00", end: "15:30", room: "二樓會議廳", track: "二樓會議廳", type: "實務工作坊", description: "探討行動心理師的實務挑戰與品牌經營。" },
-  { id: "day1-ws-psychoanalysis", day: "day1", title: "實務工作坊｜創傷與倒錯－精神分析取向的一些思路", speaker: "主持人：丁耕原｜講者：丁耕原、翁欣凱、盧乃榕", start: "14:00", end: "15:30", room: "MD169", track: "MD169", type: "實務工作坊", description: "從精神分析取向切入創傷與倒錯的臨床思路。" },
-  { id: "day1-ws-ai-1", day: "day1", title: "實務工作坊｜AI 難以取代的心療元素（一）", speaker: "主持人：黃天豪｜講者：張惠娟、黃天豪、王佑筠", start: "14:00", end: "15:30", room: "MD168", track: "MD168", type: "實務工作坊", description: "從腦科學到關係轉譯，探討 AI 難以取代的治療元素。" },
-  { id: "day1-ws-hualien", day: "day1", title: "實務工作坊｜韌性花蓮－花蓮在地心理工作者的自我療癒經驗", speaker: "主持人：劉瑞楨｜講者：黎士鳴", start: "14:00", end: "15:30", room: "MD167", track: "MD167", type: "實務工作坊", description: "分享花蓮在地心理工作者的自我療癒經驗。" },
-  { id: "day1-ws-home-service", day: "day1", title: "實務工作坊｜在非典型場域中建立結構", speaker: "主持人：邱似齡｜講者：鄭幼毅", start: "14:00", end: "15:30", room: "MD203", track: "MD203", type: "實務工作坊", description: "探討到宅心理服務中專業調整與系統整合。" },
-  { id: "day1-ws-custody-1", day: "day1", title: "實務工作坊｜親權事件程序監理人：角色", speaker: "主持人：呂信慧｜講者：黃春偉、林欣儀、蘇淑貞", start: "14:00", end: "15:30", room: "MD204", track: "MD204", type: "實務工作坊", description: "聚焦親權事件程序監理人之角色定位。" },
-  { id: "day1-symposium-cbme-ai", day: "day1", title: "學術研討會｜CBME導向臨床心理師數位培訓計畫", speaker: "主持人：葉品陽｜講者：張宏業、張明偉、莊雅媜", start: "14:00", end: "15:30", room: "MD215", track: "MD215", type: "學術研討會", description: "介紹 CBME 導向臨床心理師數位培訓計畫的執行現況。" },
-  { id: "day1-symposium-digital-addiction", day: "day1", title: "學術研討會｜數位成癮的多層次機制與人工智慧應用", speaker: "主持人：柯慧貞｜講者：李昆樺、張芸瑄、顏碩志、劉羿妮", start: "14:00", end: "15:30", room: "MD214", track: "MD214", type: "學術研討會", description: "從心理歷程與生理訊號整合觀點，探討數位成癮與 AI 應用。" },
-  { id: "day1-symposium-palliative", day: "day1", title: "學術研討會｜安寧心腫的實習困境與督導議題", speaker: "主持人：黃文翰｜講者：黃文翰、洪家暐、林亭妤、王韋婷", start: "14:00", end: "15:30", room: "MD213", track: "MD213", type: "學術研討會", description: "探討安寧心腫領域中的實習困境與督導議題。" },
-  { id: "day1-break-2", day: "day1", title: "中場休息、茶敘交流", speaker: "", start: "15:30", end: "15:50", room: "國璽樓一二樓大廳", track: "其他", type: "開放式議程", description: "中場休息與茶敘交流。" },
-  { id: "day1-ws-clinic-management", day: "day1", title: "實務工作坊｜心理治療所經營的實務挑戰與關鍵抉擇", speaker: "主持人：劉彥君｜講者：林孜嶸、邱似齡、劉彥君", start: "15:50", end: "17:20", room: "二樓會議廳", track: "二樓會議廳", type: "實務工作坊", description: "聚焦心理治療所經營中的實務挑戰與關鍵抉擇。" },
-  { id: "day1-symposium-resilience", day: "day1", title: "學術研討會｜資訊操弄環境下的台灣社會心理韌性", speaker: "主持人：洪國鈞｜講者：李梅君、鍾雅竹、朱玉正", start: "15:50", end: "17:20", room: "MD169", track: "MD169", type: "學術研討會", description: "探討資訊操弄環境下的台灣社會心理韌性。" },
-  { id: "day1-ws-ai-2", day: "day1", title: "實務工作坊｜AI 難以取代的心療元素（二）", speaker: "主持人：黃天豪｜講者：李炯德、陳弘儒、陳宜家", start: "15:50", end: "17:20", room: "MD168", track: "MD168", type: "實務工作坊", description: "延續系列工作坊，聚焦具身共振與場域即興。" },
-  { id: "day1-ws-public-safety", day: "day1", title: "實務工作坊｜臨床心理師在公共安全事件的安心關懷", speaker: "主持人：王愉晴｜講者：王愉晴、呂宜峰、劉耿良、游雅雯", start: "15:50", end: "17:20", room: "MD167", track: "MD167", type: "實務工作坊", description: "探討公共安全事件中的安心關懷工作。" },
-  { id: "day1-symposium-ai-assessment", day: "day1", title: "學術研討會｜人工智慧輔助的臨床心理評估與教育訓練", speaker: "主持人：葉品陽｜講者：李琳、李佳潔、林宛糖、陳彥蓁、蘇鈺茹", start: "15:50", end: "17:20", room: "MD203", track: "MD203", type: "學術研討會", description: "介紹人工智慧輔助臨床心理評估與教育訓練之跨域應用。" },
-  { id: "day1-ws-custody-2", day: "day1", title: "實務工作坊｜親權事件程序監理人：實作", speaker: "主持人：古黃守廉｜講者：林欣儀、黃春偉、蘇淑貞", start: "15:50", end: "17:20", room: "MD204", track: "MD204", type: "實務工作坊", description: "聚焦程序監理人角色之實作演練。" },
-  { id: "day1-symposium-epa", day: "day1", title: "學術研討會｜CBME導向之EPA評核使用經驗與反思", speaker: "主持人：呂信慧｜講者：呂信慧、楊如泰、呂政碩、黃睿謙", start: "15:50", end: "17:20", room: "MD215", track: "MD215", type: "學術研討會", description: "探討 CBME 導向之 EPA 評核使用經驗與反思。" },
-  { id: "day1-symposium-recovery", day: "day1", title: "學術研討會｜正走在復元的路上：談戒癮生活的能與難", speaker: "主持人：李昆樺｜講者：黎士鳴、蔡倢妤、張芸瑄、李昆樺", start: "15:50", end: "17:20", room: "MD214", track: "MD214", type: "學術研討會", description: "談戒癮生活中的挑戰與復元歷程。" },
-  { id: "day1-end", day: "day1", title: "第一天會議結束", speaker: "", start: "17:20", end: "17:20", room: "", track: "其他", type: "開放式議程", description: "第一天會議結束。" },
-  { id: "day2-checkin", day: "day2", title: "報到", speaker: "", start: "09:00", end: "09:30", room: "國璽樓一樓大廳", track: "其他", type: "開放式議程", description: "與會者報到與入場。" },
-  { id: "day2-master-talk", day: "day2", title: "大師對談｜AI時代的心理復原力與社會支持", speaker: "與談人：郭乃文、楊啟正、廖士程｜主持人：楊啟正 理事長", start: "09:30", end: "10:30", room: "一樓國際會議廳", track: "主會場", type: "大師對談", description: "聚焦 AI 時代下的心理復原力與社會支持。" },
-  { id: "day2-break-1", day: "day2", title: "中場休息、茶敘交流", speaker: "", start: "10:30", end: "10:50", room: "國璽樓一二樓大廳", track: "其他", type: "開放式議程", description: "中場休息與茶敘交流。" },
-  { id: "day2-keynote-3", day: "day2", title: "專題演講（三）｜當AI進入助人關係：心理療癒的人智互動", speaker: "主講人：陳宜秀｜主持人：葉在庭", start: "10:50", end: "12:20", room: "一樓國際會議廳", track: "主會場", type: "專題演講", description: "探討當 AI 進入助人關係之後，心理療癒中的人智互動。" },
-  { id: "day2-grad-sharing", day: "day2", title: "研究生代表會｜實習督導分享（兒童領域）", speaker: "江懿雅 臨床心理師", start: "12:00", end: "13:00", room: "MD214", track: "MD214", type: "研究生代表會", description: "台臨心研究生代表會安排之實習督導分享，主題為兒童領域。" },
-  { id: "day2-award", day: "day2", title: "頒獎典禮", speaker: "學術獎、服務獎、壁報論文獎", start: "12:20", end: "12:40", room: "一樓國際會議廳", track: "主會場", type: "開放式議程", description: "頒發學術獎、服務獎與壁報論文獎。" },
-  { id: "day2-lunch-vendor", day: "day2", title: "午餐休息／科技廠商分享會", speaker: "", start: "12:40", end: "13:30", room: "MD171／MD167", track: "其他", type: "開放式議程", description: "午餐休息時間，並同步進行科技廠商分享會。" },
-  { id: "day2-forum-hospital", day: "day2", title: "專題論壇｜大醫院臨床心理師的使命感與教學之樂", speaker: "主講人：李妍緹、林家如、侯懿真｜主持人：林家如", start: "13:30", end: "14:00", room: "二樓會議廳", track: "二樓會議廳", type: "專題論壇", description: "探討大醫院臨床心理師的使命感與教學經驗。" },
-  { id: "day2-keynote-4", day: "day2", title: "專題演講（四）｜Digital Cognitive Assessments for Streamlined Detection of Cognitive Impairment", speaker: "主講人：Dr. Ziad Nasreddine｜主持人：徐晏萱", start: "14:00", end: "15:00", room: "一樓國際會議廳", track: "主會場", type: "專題演講", description: "聚焦數位認知評估與認知障礙偵測。" },
-  { id: "day2-break-2", day: "day2", title: "中場休息、茶敘交流", speaker: "", start: "15:00", end: "15:20", room: "國璽樓一二樓大廳", track: "其他", type: "開放式議程", description: "中場休息與茶敘交流。" },
-  { id: "day2-ws-sandplay", day: "day2", title: "實務工作坊｜沙遊治療體驗工作坊－自我探索與療育", speaker: "主持人：葉在庭｜講者：劉又綺", start: "15:20", end: "16:50", room: "MD215", track: "MD215", type: "實務工作坊", description: "沙遊治療體驗工作坊，限制 40 名參與者。", note: "因沙遊道具數量有限，本場次限制 40 名參與者，並以當時段入場順序為原則進行安排。" },
-  { id: "day2-ws-sel", day: "day2", title: "實務工作坊｜社會情緒學習的醫療與社區運用", speaker: "主持人：李依親｜講者：李依親、黃宜珊、梁嘉倩、黃婉婷", start: "15:20", end: "16:50", room: "MD169", track: "MD169", type: "實務工作坊", description: "分享社會情緒學習在醫療與社區不同發展階段之實務運用。" },
-  { id: "day2-ws-systemic", day: "day2", title: "實務工作坊｜把問題放回關係裡：從個別到系統的臨床工作", speaker: "主持人：劉彥君｜講者：劉彥君、徐孟汎、謝珮玲", start: "15:20", end: "16:50", room: "MD168", track: "MD168", type: "實務工作坊", description: "從個別到系統，重新思考臨床工作中如何把問題放回關係裡。" },
-  { id: "day2-ws-ai-anxiety", day: "day2", title: "實務工作坊｜心理師在AI時代的存在焦慮", speaker: "主持人：黃健｜講者：蔡幸祖、黃文宏", start: "15:20", end: "16:50", room: "MD203", track: "MD203", type: "實務工作坊", description: "探討心理師在 AI 時代中的存在焦慮、實務應用、限制與未來。" },
-  { id: "day2-ws-consultation", day: "day2", title: "實務工作坊｜臨床心理照會實務演練", speaker: "主持人：盛心毓｜講者：盛心毓、龍奕薰、邱泓達、陳俞霈、楊皓涵", start: "15:20", end: "16:50", room: "MD204", track: "MD204", type: "實務工作坊", description: "以健康心理學為基礎，進行臨床心理照會實務演練。" },
-  { id: "day2-symposium-medical-law", day: "day2", title: "學術研討會｜醫療與司法情境下的心理評估與病人自主", speaker: "主持人：蘇文碩｜講者：蘇文碩、丁子芸、林沛瀅、沈琬紜", start: "15:20", end: "16:50", room: "MD214", track: "MD214", type: "學術研討會", description: "探討醫療與司法情境下的心理評估、病人自主與照顧者福祉。" },
-  { id: "day2-symposium-psychopathology", day: "day2", title: "學術研討會｜從實驗心理病理研究探索多元認知介入的可能性", speaker: "主持人：梁記雯｜講者：李亭勳、吳孟蓉、官玟伶、李珩毅", start: "15:20", end: "16:50", room: "MD213", track: "MD213", type: "學術研討會", description: "從實驗心理病理研究探索多元認知介入的可能性。" },
-  { id: "day2-oral-report", day: "day2", title: "口頭報告（MD212）", speaker: "主持人：黃玉蓮｜含多篇口頭報告", start: "15:20", end: "16:50", room: "MD212", track: "MD212", type: "口頭報告", description: "涵蓋 Complex PTSD、危機等級識別、父母壓力、藥癮治療、瑜伽與工作記憶，以及 AI 創傷知情教育等主題。" },
-  { id: "day2-end", day: "day2", title: "年會圓滿結束，平安賦歸", speaker: "", start: "16:50", end: "16:50", room: "", track: "其他", type: "開放式議程", description: "年會圓滿結束，平安賦歸。" },
+const duties: Duty[] = [
+  {
+    id: "0424-1500-1",
+    day: "0424",
+    start: "15:00",
+    end: "15:10",
+    location: "宗輔室集合",
+    people: ["思妤", "子熒"],
+    task: "點名、確認全員到齊",
+    detail: "確認全員報到，若有人未到先由機動遞補。",
+  },
+  {
+    id: "0424-1510-1",
+    day: "0424",
+    start: "15:10",
+    end: "15:20",
+    location: "宗輔室集合",
+    people: ["全體"],
+    task: "物資說明",
+    detail: "說明領據信封、提醒牌、場次單、原子筆、USB 的使用方式。",
+  },
+  {
+    id: "0424-1520-1",
+    day: "0424",
+    start: "15:20",
+    end: "15:35",
+    location: "宗輔室工作桌",
+    people: ["子熒", "思妤", "子裳", "宥伶", "詩璇", "采仔", "欣愉", "婧蓉"],
+    task: "整理所有物品放置位置",
+    detail: "將所有物品放於宗輔室桌上，確認放置位置與缺件。",
+  },
+  {
+    id: "0424-1535-1",
+    day: "0424",
+    start: "15:35",
+    end: "15:50",
+    location: "一樓國際會議廳",
+    people: ["碩誠", "慧玟", "珊淇", "少杰", "海茵", "智翔"],
+    task: "主場總巡檢",
+    detail: "確認主持台、講台、投影、麥克風、音源、網路、燈光與時間提示牌位置。",
+  },
+  {
+    id: "0424-1535-2",
+    day: "0424",
+    start: "15:35",
+    end: "15:50",
+    location: "二樓國際會議廳",
+    people: ["庭葰", "圓庭", "筠婷", "子媛", "子萱"],
+    task: "二樓會議廳巡檢",
+    detail: "確認主持位置、投影、燈光與提示牌位置。",
+  },
+  {
+    id: "0424-1535-3",
+    day: "0424",
+    start: "15:35",
+    end: "16:00",
+    location: "DG308",
+    people: ["岳哲", "瀚淳", "芷虹"],
+    task: "同步教室巡檢",
+    detail: "確認電腦、投影、網路與同步教室立牌。",
+  },
+  {
+    id: "0424-1550-1",
+    day: "0424",
+    start: "15:50",
+    end: "16:20",
+    location: "各工作坊／研討會教室",
+    people: ["可芸", "雅雯", "子媛", "宣亞", "詠棋", "依伶", "文伶", "敏瑄", "晏緹", "霖萱"],
+    task: "逐教室確認場佈",
+    detail: "確認桌椅、麥克風、簡報筆、場次單與簽到退提醒位置。",
+  },
+  {
+    id: "0424-1620-1",
+    day: "0424",
+    start: "16:20",
+    end: "16:40",
+    location: "各教室",
+    people: ["彥儒", "宥伶", "詩璇", "采仔", "欣愉", "婧蓉"],
+    task: "下載與備份簡報",
+    detail: "將各場簡報下載到桌面並保留 USB 備份。",
+  },
+  {
+    id: "0424-1640-1",
+    day: "0424",
+    start: "16:40",
+    end: "17:00",
+    location: "一樓國際會議廳",
+    people: ["碩誠", "慧玟", "珊淇", "少杰", "海茵"],
+    task: "演練開幕與專題流程",
+    detail: "演練主持開場、貴賓上台、Q&A 遞麥、時間提醒與簽退提醒。",
+  },
+  {
+    id: "0424-1640-2",
+    day: "0424",
+    start: "16:40",
+    end: "17:00",
+    location: "二樓國際會議廳",
+    people: ["庭葰", "圓庭", "筠婷", "子媛"],
+    task: "演練二樓流程",
+    detail: "演練主持開場、Q&A、時間控制與簽退提醒。",
+  },
+  {
+    id: "0424-1700-1",
+    day: "0424",
+    start: "17:00",
+    end: "17:20",
+    location: "宗輔室集合",
+    people: ["思妤", "子熒", "全體"],
+    task: "分區回報",
+    detail: "回報已完成、待確認與風險點。",
+  },
+  {
+    id: "0424-1745-1",
+    day: "0424",
+    start: "17:45",
+    end: "18:00",
+    location: "宗輔室收尾",
+    people: ["子裳", "彥儒", "宥伶", "詩璇", "采仔", "欣愉", "婧蓉"],
+    task: "物資分類標示",
+    detail: "將信封、提示牌、USB 標示隔日用途，桌面只留已分類物資。",
+  },
+  {
+    id: "0425-0715-1",
+    day: "0425",
+    start: "07:15",
+    end: "07:30",
+    location: "秘書處",
+    people: ["彥儒"],
+    task: "領取上午主場資料",
+    detail: "領上午場全部信封、領據、講師費、交通費與簽到退 QR code，按場次裝袋。",
+  },
+  {
+    id: "0425-0730-1",
+    day: "0425",
+    start: "07:30",
+    end: "08:20",
+    location: "一樓國際會議廳",
+    people: ["碩誠", "慧玟", "珊淇", "少杰", "海茵", "彥儒"],
+    task: "主場開場前總檢查",
+    detail: "確認 PPT、迎賓音樂、麥克風、貴賓名牌、提示牌與講者信封。",
+  },
+  {
+    id: "0425-0730-2",
+    day: "0425",
+    start: "07:30",
+    end: "08:20",
+    location: "DG308",
+    people: ["岳哲", "瀚淳"],
+    task: "同步教室準備",
+    detail: "開啟同步教室投影、音量、網路，08:20 可開放。",
+  },
+  {
+    id: "0425-0730-3",
+    day: "0425",
+    start: "07:30",
+    end: "08:20",
+    location: "二樓機動巡點",
+    people: ["子裳", "宥伶", "詩璇", "采仔", "欣愉", "婧蓉", "芷虹", "子萱", "智翔"],
+    task: "機動巡點",
+    detail: "巡各點檢查講者是否提早抵達、QR code 是否移位、教室門口可辨識。",
+  },
+  {
+    id: "0425-0820-1",
+    day: "0425",
+    start: "08:20",
+    end: "08:50",
+    location: "一樓國際會議廳",
+    people: ["少杰"],
+    task: "前門控流與帶位",
+    detail: "提醒簽到、引導往前往中間入座、觀察滿座率。",
+  },
+  {
+    id: "0425-0820-2",
+    day: "0425",
+    start: "08:20",
+    end: "08:50",
+    location: "一樓國際會議廳",
+    people: ["海茵"],
+    task: "貴賓帶位",
+    detail: "協助貴賓入座並說明時間提醒方式。",
+  },
+  {
+    id: "0425-0820-3",
+    day: "0425",
+    start: "08:20",
+    end: "08:50",
+    location: "一樓國際會議廳",
+    people: ["珊淇"],
+    task: "放置提示牌與合照確認",
+    detail: "放好提示牌並確認合照時點。",
+  },
+  {
+    id: "0425-0820-4",
+    day: "0425",
+    start: "08:20",
+    end: "08:50",
+    location: "一樓國際會議廳",
+    people: ["碩誠", "慧玟"],
+    task: "確認開幕 PPT 與試音",
+    detail: "確認開幕 PPT／影片、試音並於 08:50 準時開場。",
+  },
+  {
+    id: "0425-0820-5",
+    day: "0425",
+    start: "08:20",
+    end: "08:50",
+    location: "DG308",
+    people: ["岳哲", "瀚淳"],
+    task: "同步教室引導",
+    detail: "貼場次單、提醒此處為同步教室並指引簽到退 QR code。",
+  },
+  {
+    id: "0425-0850-1",
+    day: "0425",
+    start: "08:50",
+    end: "09:30",
+    location: "一樓國際會議廳",
+    people: ["碩誠", "慧玟"],
+    task: "主持開幕式",
+    detail: "主持開幕、串接貴賓致詞、控制節奏並準時收尾。",
+  },
+  {
+    id: "0425-0850-2",
+    day: "0425",
+    start: "08:50",
+    end: "09:30",
+    location: "一樓國際會議廳",
+    people: ["少杰", "海茵"],
+    task: "遞麥與合照動線",
+    detail: "遞麥、引導歷屆理事上台合照並維持走道淨空。",
+  },
+  {
+    id: "0425-0900-1",
+    day: "0425",
+    start: "09:00",
+    end: "09:30",
+    location: "講者休息區／主場",
+    people: ["彥儒"],
+    task: "接專題演講（一）講者",
+    detail: "接待講者、收最後版 PPT、確認主持到位。",
+  },
+  {
+    id: "0425-0930-1",
+    day: "0425",
+    start: "09:30",
+    end: "11:00",
+    location: "一樓國際會議廳",
+    people: ["碩誠", "慧玟"],
+    task: "主持專題演講（一）",
+    detail: "主持專題演講、Q&A 遞麥與收尾。",
+  },
+  {
+    id: "0425-0930-2",
+    day: "0425",
+    start: "09:30",
+    end: "11:00",
+    location: "一樓國際會議廳",
+    people: ["珊淇"],
+    task: "舉牌提醒時間",
+    detail: "依序舉 10／5／1 分鐘與時間到，提醒主持收束。",
+  },
+  {
+    id: "0425-0930-3",
+    day: "0425",
+    start: "09:30",
+    end: "11:00",
+    location: "一樓國際會議廳",
+    people: ["少杰", "海茵"],
+    task: "門口控流與 Q&A 遞麥",
+    detail: "提醒簽到退、控流、Q&A 遞麥，避免影響講者。",
+  },
+  {
+    id: "0425-0930-4",
+    day: "0425",
+    start: "09:30",
+    end: "11:00",
+    location: "DG308",
+    people: ["岳哲", "瀚淳"],
+    task: "同步教室控流",
+    detail: "提醒簽到退並記錄是否需加開座位。",
+  },
+  {
+    id: "0425-0930-5",
+    day: "0425",
+    start: "09:30",
+    end: "11:00",
+    location: "場邊待命",
+    people: ["芷虹", "子萱", "智翔"],
+    task: "機動補位",
+    detail: "隨時支援跑信封、拿電池、遞麥或帶位。",
+  },
+  {
+    id: "0425-1100-1",
+    day: "0425",
+    start: "11:00",
+    end: "11:20",
+    location: "一樓國際會議廳／講者出口",
+    people: ["彥儒"],
+    task: "講者簽領據回收",
+    detail: "請講者簽領據、放回信封並交回宗輔室。",
+  },
+  {
+    id: "0425-1100-2",
+    day: "0425",
+    start: "11:00",
+    end: "11:20",
+    location: "1、2樓大廳",
+    people: ["少杰", "海茵", "敬婷", "可芸", "雅雯", "宣亞", "詠棋", "依伶", "文伶", "敏瑄", "霖萱", "婧蓉", "欣愉", "晏緹"],
+    task: "茶敘導流",
+    detail: "提醒會員大會即將開始，引導觀眾不要逗留在門口。",
+  },
+  {
+    id: "0425-1120-1",
+    day: "0425",
+    start: "11:20",
+    end: "12:20",
+    location: "一樓國際會議廳",
+    people: ["思妤", "子熒"],
+    task: "監督會員大會流程",
+    detail: "確認議程組只做引導與秩序，不代替秘書處。",
+  },
+  {
+    id: "0425-1120-2",
+    day: "0425",
+    start: "11:20",
+    end: "12:20",
+    location: "一樓國際會議廳",
+    people: ["彥儒", "詩璇"],
+    task: "門口簽到說明",
+    detail: "解釋會員大會簽到方式，協助老會員就座。",
+  },
+  {
+    id: "0425-1120-3",
+    day: "0425",
+    start: "11:20",
+    end: "12:20",
+    location: "一樓國際會議廳",
+    people: ["惟謙"],
+    task: "主場時間與秩序提醒",
+    detail: "控制時間並照看第一排與走道。",
+  },
+  {
+    id: "0425-1120-4",
+    day: "0425",
+    start: "11:20",
+    end: "12:20",
+    location: "一樓國際會議廳",
+    people: ["敬婷", "少杰"],
+    task: "觀眾帶位與會後疏散",
+    detail: "協助帶位並於會後快速疏散觀眾。",
+  },
+  {
+    id: "0425-1220-1",
+    day: "0425",
+    start: "12:20",
+    end: "13:00",
+    location: "宗輔室",
+    people: ["思妤", "子熒", "彥儒", "宥伶", "子裳", "詩璇", "采仔", "欣愉", "婧蓉"],
+    task: "整理下午資料袋",
+    detail: "整理下午所有場次資料袋：領據信封、主持稿、PPT、教室清單與 QR code。",
+  },
+  {
+    id: "0425-1220-2",
+    day: "0425",
+    start: "12:20",
+    end: "13:00",
+    location: "一樓國際會議廳",
+    people: ["碩誠", "慧玟"],
+    task: "播放午餐串場 PPT 與轉場音樂",
+    detail: "提醒下午主場與 DG308 開放規則。",
+  },
+  {
+    id: "0425-1220-3",
+    day: "0425",
+    start: "12:20",
+    end: "13:00",
+    location: "二樓各教室",
+    people: ["可芸", "雅雯", "子媛", "筠婷", "晏緹", "霖萱", "宣亞", "詠棋", "依伶", "文伶", "敏瑄", "珊淇"],
+    task: "各教室下午場佈",
+    detail: "進行 14:00 場次場佈：QR code、提示牌、桌椅、投影與講台淨空。",
+  },
+  {
+    id: "0425-1300-1",
+    day: "0425",
+    start: "13:00",
+    end: "14:00",
+    location: "一樓國際會議廳",
+    people: ["碩誠", "慧玟", "思妤", "詩璇", "敬婷", "海茵", "惟謙", "彥儒", "芷虹", "瀚淳"],
+    task: "法律課程主場執行",
+    detail: "接待講者、主持、引導入座、DG308 同步與場控。",
+  },
+  {
+    id: "0425-1400-1",
+    day: "0425",
+    start: "14:00",
+    end: "15:30",
+    location: "二樓國際會議廳",
+    people: ["庭葰", "圓庭", "子媛", "筠婷", "子熒", "欣愉"],
+    task: "行動心理師工作坊",
+    detail: "主持、引導、場控與接待。",
+  },
+  {
+    id: "0425-1400-2",
+    day: "0425",
+    start: "14:00",
+    end: "15:30",
+    location: "MD169",
+    people: ["少杰", "晏緹", "彥儒", "婧蓉"],
+    task: "創傷工作坊",
+    detail: "少杰引導與遞麥；晏緹場控；彥儒、婧蓉場邊接待與領據。",
+  },
+  {
+    id: "0425-1400-3",
+    day: "0425",
+    start: "14:00",
+    end: "15:30",
+    location: "MD168",
+    people: ["岳哲", "霖萱", "采仔"],
+    task: "AI 難以（一）工作坊",
+    detail: "開檔、引導、時間控制與場後領據。",
+  },
+  {
+    id: "0425-1400-4",
+    day: "0425",
+    start: "14:00",
+    end: "15:30",
+    location: "MD167",
+    people: ["可芸", "宣亞", "子裳"],
+    task: "花蓮工作坊",
+    detail: "接講者、門口引導、提示牌與領據。",
+  },
+  {
+    id: "0425-1400-5",
+    day: "0425",
+    start: "14:00",
+    end: "15:30",
+    location: "MD203",
+    people: ["海茵", "詠棋", "宥伶"],
+    task: "到宅心理工作坊",
+    detail: "接待、門口簽到與場內引導。",
+  },
+  {
+    id: "0425-1400-6",
+    day: "0425",
+    start: "14:00",
+    end: "15:30",
+    location: "MD204",
+    people: ["雅雯", "文伶", "詩璇"],
+    task: "程序監理：角色",
+    detail: "場控、接待與場後收信封。",
+  },
+  {
+    id: "0425-1400-7",
+    day: "0425",
+    start: "14:00",
+    end: "15:30",
+    location: "MD215",
+    people: ["敬婷", "敏瑄", "欣愉"],
+    task: "CBME 現況研討會",
+    detail: "提醒簽到退、場內引導與場後收信封。",
+  },
+  {
+    id: "0425-1400-8",
+    day: "0425",
+    start: "14:00",
+    end: "15:30",
+    location: "MD214",
+    people: ["宥伶", "依伶", "婧蓉"],
+    task: "數位成癮研討會",
+    detail: "接待、時間控制與場內引導。",
+  },
+  {
+    id: "0425-1400-9",
+    day: "0425",
+    start: "14:00",
+    end: "15:30",
+    location: "MD213",
+    people: ["子媛", "珊淇", "采仔"],
+    task: "安寧研討會",
+    detail: "場控提醒時間並支援接待。",
+  },
+  {
+    id: "0425-1530-1",
+    day: "0425",
+    start: "15:30",
+    end: "15:50",
+    location: "各教室",
+    people: ["各教室原班人員"],
+    task: "場後固定四步",
+    detail: "提醒簽退 → 講者簽領據 → 領據回信封 → 換下一場 PPT／收教室。",
+  },
+  {
+    id: "0425-1550-1",
+    day: "0425",
+    start: "15:50",
+    end: "17:20",
+    location: "二樓國際會議廳",
+    people: ["庭葰", "圓庭", "子媛", "筠婷", "彥儒", "欣愉"],
+    task: "治療所工作坊",
+    detail: "主持、引導、場控與接待。",
+  },
+  {
+    id: "0425-1550-2",
+    day: "0425",
+    start: "15:50",
+    end: "17:20",
+    location: "MD169",
+    people: ["少杰", "晏緹", "采仔"],
+    task: "資訊操弄研討會",
+    detail: "引導、場控、接待與場後收信封。",
+  },
+  {
+    id: "0425-1550-3",
+    day: "0425",
+    start: "15:50",
+    end: "17:20",
+    location: "MD168",
+    people: ["岳哲", "霖萱"],
+    task: "AI 難以（二）工作坊",
+    detail: "引導與場控。",
+  },
+  {
+    id: "0425-1550-4",
+    day: "0425",
+    start: "15:50",
+    end: "17:20",
+    location: "MD167",
+    people: ["可芸", "宣亞", "子裳"],
+    task: "公共安全工作坊",
+    detail: "引導、場控與接待。",
+  },
+  {
+    id: "0425-1550-5",
+    day: "0425",
+    start: "15:50",
+    end: "17:20",
+    location: "MD203",
+    people: ["海茵", "詠棋", "宥伶"],
+    task: "人工智慧研討會",
+    detail: "引導、場控與接待。",
+  },
+  {
+    id: "0425-1550-6",
+    day: "0425",
+    start: "15:50",
+    end: "17:20",
+    location: "MD204",
+    people: ["雅雯", "文伶", "詩璇"],
+    task: "程序監理：實作",
+    detail: "引導、場控、接待與時間提醒。",
+  },
+  {
+    id: "0425-1550-7",
+    day: "0425",
+    start: "15:50",
+    end: "17:20",
+    location: "MD215",
+    people: ["敬婷", "敏瑄", "欣愉"],
+    task: "CBME：反思",
+    detail: "引導、場控與接待。",
+  },
+  {
+    id: "0425-1550-8",
+    day: "0425",
+    start: "15:50",
+    end: "17:20",
+    location: "MD214",
+    people: ["子媛", "依伶", "婧蓉"],
+    task: "多元場次（MD214）",
+    detail: "引導、場控與接待。",
+  },
+  {
+    id: "0425-1550-9",
+    day: "0425",
+    start: "15:50",
+    end: "17:20",
+    location: "MD213",
+    people: ["宥伶", "珊淇", "采仔"],
+    task: "多元場次（MD213）",
+    detail: "引導、場控與接待。",
+  },
+  {
+    id: "0425-1720-1",
+    day: "0425",
+    start: "17:20",
+    end: "17:50",
+    location: "宗輔室",
+    people: ["思妤", "子熒", "全體"],
+    task: "4/25 收尾",
+    detail: "回收所有領據信封、提示牌、主持稿、剩餘 QR code，核對未簽名名單。",
+  },
+  {
+    id: "0426-0800-1",
+    day: "0426",
+    start: "08:00",
+    end: "08:15",
+    location: "宗輔室",
+    people: ["子熒", "宥伶"],
+    task: "領上午場資料",
+    detail: "領上午場信封、領據、交通費與簽到退 QR code，按場次裝袋。",
+  },
+  {
+    id: "0426-0830-1",
+    day: "0426",
+    start: "08:30",
+    end: "09:00",
+    location: "一樓國際會議廳",
+    people: ["碩誠", "慧玟", "惟謙", "敬婷", "岳哲", "子熒", "欣愉"],
+    task: "大師對談主場前置",
+    detail: "開檔、試音、接講者、提示牌與引導。",
+  },
+  {
+    id: "0426-0830-2",
+    day: "0426",
+    start: "08:30",
+    end: "09:00",
+    location: "DG308",
+    people: ["彥儒", "采仔", "瀚淳"],
+    task: "同步教室前置",
+    detail: "開機、投影、門口說明與簽到退。",
+  },
+  {
+    id: "0426-0930-1",
+    day: "0426",
+    start: "09:30",
+    end: "10:30",
+    location: "一樓國際會議廳",
+    people: ["碩誠", "慧玟", "惟謙", "敬婷", "岳哲", "子熒", "欣愉"],
+    task: "大師對談進行",
+    detail: "主持、場控、引導、接待與場後收信封。",
+  },
+  {
+    id: "0426-1030-1",
+    day: "0426",
+    start: "10:30",
+    end: "10:50",
+    location: "1、2樓大廳",
+    people: ["彥儒", "珊淇", "筠婷", "可芸", "雅雯", "晏緹"],
+    task: "茶敘導流",
+    detail: "提醒 10:50 專題演講（三）即將開始。",
+  },
+  {
+    id: "0426-1020-1",
+    day: "0426",
+    start: "10:20",
+    end: "10:50",
+    location: "一樓國際會議廳",
+    people: ["宥伶", "詩璇", "惟謙", "敬婷", "岳哲", "彥儒", "采仔"],
+    task: "專題演講（三）場前",
+    detail: "接講者、開檔、提示牌、引導與 DG308 同步準備。",
+  },
+  {
+    id: "0426-1050-1",
+    day: "0426",
+    start: "10:50",
+    end: "12:20",
+    location: "一樓國際會議廳",
+    people: ["碩誠", "慧玟", "惟謙", "敬婷", "岳哲", "宥伶", "詩璇"],
+    task: "專題演講（三）進行",
+    detail: "主持、場控與收尾，並提醒簽退。",
+  },
+  {
+    id: "0426-1050-2",
+    day: "0426",
+    start: "10:50",
+    end: "12:20",
+    location: "DG308",
+    people: ["彥儒", "采仔"],
+    task: "同步教室運作",
+    detail: "維持 DG308 同步教室運作到主場結束。",
+  },
+  {
+    id: "0426-1220-1",
+    day: "0426",
+    start: "12:20",
+    end: "12:40",
+    location: "一樓國際會議廳",
+    people: ["碩誠", "慧玟", "少杰", "海茵", "思妤", "子熒"],
+    task: "頒獎典禮",
+    detail: "主持、受獎者動線、第一排整理與散場。",
+  },
+  {
+    id: "0426-1240-1",
+    day: "0426",
+    start: "12:40",
+    end: "13:30",
+    location: "宗輔室＋各教室",
+    people: ["思妤", "子熒", "宥伶", "子裳", "詩璇", "采仔", "欣愉", "婧蓉"],
+    task: "整理下午資料並分送",
+    detail: "整理下午所有場次信封與 QR code，分送到二樓論壇與各教室。",
+  },
+  {
+    id: "0426-1300-1",
+    day: "0426",
+    start: "13:00",
+    end: "13:30",
+    location: "二樓國際會議廳",
+    people: ["庭葰", "圓庭", "珊淇", "少杰", "宥伶", "婧蓉", "子裳"],
+    task: "專題論壇場前",
+    detail: "主持站位、接講者、開檔、提示牌與引導。",
+  },
+  {
+    id: "0426-1330-1",
+    day: "0426",
+    start: "13:30",
+    end: "15:00",
+    location: "二樓國際會議廳",
+    people: ["庭葰", "圓庭", "珊淇", "少杰", "宥伶", "婧蓉", "子裳"],
+    task: "專題論壇進行",
+    detail: "主持、場控、引導、遞麥與場後收信封。",
+  },
+  {
+    id: "0426-1330-2",
+    day: "0426",
+    start: "13:30",
+    end: "14:00",
+    location: "一樓國際會議廳",
+    people: ["碩誠", "慧玟", "惟謙", "敬婷", "岳哲", "子熒"],
+    task: "專題演講（四）場前",
+    detail: "主持、場控、引導與接講者。",
+  },
+  {
+    id: "0426-1400-1",
+    day: "0426",
+    start: "14:00",
+    end: "15:00",
+    location: "一樓國際會議廳",
+    people: ["碩誠", "慧玟", "惟謙", "敬婷", "岳哲", "子熒", "欣愉"],
+    task: "專題演講（四）進行",
+    detail: "主持、場控、接待與簽退提醒。",
+  },
+  {
+    id: "0426-1400-2",
+    day: "0426",
+    start: "14:00",
+    end: "15:00",
+    location: "DG308",
+    people: ["采仔", "瀚淳"],
+    task: "同步教室運作",
+    detail: "維持同步教室至主場散場。",
+  },
+  {
+    id: "0426-1500-1",
+    day: "0426",
+    start: "15:00",
+    end: "15:20",
+    location: "1、2樓大廳",
+    people: ["采仔", "欣愉"],
+    task: "茶敘導流",
+    detail: "提醒 15:20 分場開始，協助人流分流。",
+  },
+  {
+    id: "0426-1500-2",
+    day: "0426",
+    start: "15:00",
+    end: "15:20",
+    location: "MD215",
+    people: ["思妤", "詩璇", "晏緹", "少杰"],
+    task: "沙遊場前",
+    detail: "準備沙遊場前置並注意人數上限 40。",
+  },
+  {
+    id: "0426-1500-3",
+    day: "0426",
+    start: "15:00",
+    end: "15:20",
+    location: "MD169",
+    people: ["采仔", "霖萱", "岳哲"],
+    task: "社會情緒場前",
+    detail: "場前就緒、引導與提示牌確認。",
+  },
+  {
+    id: "0426-1500-4",
+    day: "0426",
+    start: "15:00",
+    end: "15:20",
+    location: "MD168",
+    people: ["子裳", "宣亞", "可芸"],
+    task: "問題放回關係場前",
+    detail: "接待講者、引導入座與設備確認。",
+  },
+  {
+    id: "0426-1500-5",
+    day: "0426",
+    start: "15:00",
+    end: "15:20",
+    location: "MD203",
+    people: ["宥伶", "詠棋", "海茵"],
+    task: "AI 時代存在焦慮場前",
+    detail: "接待、引導與設備確認。",
+  },
+  {
+    id: "0426-1500-6",
+    day: "0426",
+    start: "15:00",
+    end: "15:20",
+    location: "MD204",
+    people: ["詩璇", "文伶", "雅雯"],
+    task: "照會實務演練場前",
+    detail: "場控提示牌、接待與設備確認。",
+  },
+  {
+    id: "0426-1500-7",
+    day: "0426",
+    start: "15:00",
+    end: "15:20",
+    location: "MD214",
+    people: ["欣愉", "敏瑄", "敬婷"],
+    task: "詐病場前",
+    detail: "場控、接待與設備確認。",
+  },
+  {
+    id: "0426-1500-8",
+    day: "0426",
+    start: "15:00",
+    end: "15:20",
+    location: "MD213",
+    people: ["婧蓉", "依伶", "子媛"],
+    task: "實驗心理病理場前",
+    detail: "場控、接待與設備確認。",
+  },
+  {
+    id: "0426-1500-9",
+    day: "0426",
+    start: "15:00",
+    end: "15:20",
+    location: "MD212",
+    people: ["采仔", "筠婷", "子媛"],
+    task: "口頭報告場前",
+    detail: "場控、引導與設備確認。",
+  },
+  {
+    id: "0426-1520-1",
+    day: "0426",
+    start: "15:20",
+    end: "16:50",
+    location: "各平行場次教室",
+    people: ["各室原班人員"],
+    task: "平行場次進行",
+    detail: "引導、簽到退、遞麥、場控提示牌與領據信封流程。",
+  },
+  {
+    id: "0426-1650-1",
+    day: "0426",
+    start: "16:50",
+    end: "17:20",
+    location: "各教室 → 宗輔室",
+    people: ["全體"],
+    task: "最後收尾",
+    detail: "講者簽領據 → 領據回信封 → 信封回宗輔室 → 教室恢復原狀 → 提示牌回收。",
+  },
 ];
+
+const allPeople = Array.from(
+  new Set(
+    duties
+      .flatMap((d) => d.people)
+      .filter((name) => !["全體", "各教室原班人員"].includes(name))
+  )
+).sort((a, b) => a.localeCompare(b, "zh-Hant"));
 
 const toMinutes = (time: string) => {
   const [h, m] = time.split(":").map(Number);
   return h * 60 + m;
 };
 
-const formatDuration = (start: string, end: string) => `${start} - ${end}`;
-
 export default function App() {
-  const isMobile = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
-  const [selectedDay, setSelectedDay] = useState<DayKey>("day1");
-  const [selectedSession, setSelectedSession] = useState<Session | null>(null);
+  const [selectedDay, setSelectedDay] = useState<DayKey>("0425");
   const [query, setQuery] = useState("");
+  const [pickedPerson, setPickedPerson] = useState("");
 
-  const filteredSessions = useMemo(() => {
-    return sessions
-      .filter((s) => {
-        const matchesDay = s.day === selectedDay;
-        const text = `${s.title} ${s.speaker} ${s.room} ${s.type} ${s.track}`.toLowerCase();
-        const matchesQuery = text.includes(query.trim().toLowerCase());
-        return matchesDay && matchesQuery;
-      })
+  const normalizedQuery = query.trim();
+  const activePerson = pickedPerson || normalizedQuery;
+
+  const visibleDuties = useMemo(() => {
+    const dayItems = duties
+      .filter((d) => d.day === selectedDay)
       .sort((a, b) => toMinutes(a.start) - toMinutes(b.start));
-  }, [selectedDay, query]);
 
-  const groupedByTime = useMemo(() => {
-    const map = new Map<string, Session[]>();
-    filteredSessions.forEach((session) => {
-      if (!map.has(session.start)) map.set(session.start, []);
-      map.get(session.start)!.push(session);
+    if (!activePerson) return dayItems;
+
+    return dayItems.filter((d) => d.people.some((name) => name.includes(activePerson)));
+  }, [selectedDay, activePerson]);
+
+  const selectedPersonAllDays = useMemo(() => {
+    if (!activePerson) return [];
+    return duties
+      .filter((d) => d.people.some((name) => name.includes(activePerson)))
+      .sort((a, b) => {
+        if (a.day !== b.day) return a.day.localeCompare(b.day);
+        return toMinutes(a.start) - toMinutes(b.start);
+      });
+  }, [activePerson]);
+
+  const groupedAllDays = useMemo(() => {
+    const map = new Map<DayKey, Duty[]>();
+    selectedPersonAllDays.forEach((d) => {
+      if (!map.has(d.day)) map.set(d.day, []);
+      map.get(d.day)!.push(d);
     });
-    return [...map.entries()];
-  }, [filteredSessions]);
-
-  const currentDay = dayOptions.find((d) => d.key === selectedDay)!;
-  const mobileTimelineWidth = "calc(100vw - 48px)";
+    return dayOptions.map((day) => ({
+      ...day,
+      items: map.get(day.key) ?? [],
+    }));
+  }, [selectedPersonAllDays]);
 
   return (
     <div
       style={{
         minHeight: "100vh",
-        background: "#f3f1ec",
+        background: "#f4f1ec",
         color: "#243447",
         fontFamily:
           'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
@@ -135,396 +941,246 @@ export default function App() {
           position: "sticky",
           top: 0,
           zIndex: 20,
-          background: "rgba(243,241,236,0.94)",
+          background: "rgba(244,241,236,0.95)",
           backdropFilter: "blur(14px)",
-          borderBottom: "1px solid #ddd7ce",
+          borderBottom: "1px solid #ddd6cb",
         }}
       >
-        <div
-          style={{
-            maxWidth: 1520,
-            margin: "0 auto",
-            padding: "18px 22px",
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-          }}
-        >
-          <div
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 18,
-              background: "#31465d",
-              color: "#f6f3ee",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontWeight: 700,
-            }}
-          >
-            台
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "18px 20px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14 }}>
+            <div
+              style={{
+                width: 46,
+                height: 46,
+                borderRadius: 18,
+                background: "#53677a",
+                color: "#f7f4ef",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontWeight: 700,
+                fontSize: 24,
+              }}
+            >
+              人
+            </div>
+            <div>
+              <div style={{ fontSize: 28, fontWeight: 800 }}>議程組個人任務查詢</div>
+              <div style={{ color: "#7e858d", fontSize: 15 }}>
+                搜尋姓名，就能看到該人員每個時段要做的事情。
+              </div>
+            </div>
           </div>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 16 }}>2026 台灣臨床心理學會學術研討會</div>
-            <div style={{ fontSize: 13, color: "#7d838c" }}>人工智慧時代的臨床心理學：創新與拓展</div>
+
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+            {dayOptions.map((day) => (
+              <button
+                key={day.key}
+                onClick={() => setSelectedDay(day.key)}
+                style={{
+                  border: "1px solid #d8d0c5",
+                  background: selectedDay === day.key ? "#4f6475" : "#faf7f2",
+                  color: selectedDay === day.key ? "#faf7f2" : "#394a58",
+                  borderRadius: 16,
+                  padding: "10px 14px",
+                  cursor: "pointer",
+                  fontWeight: 700,
+                }}
+              >
+                {day.label}
+              </button>
+            ))}
           </div>
         </div>
       </div>
 
-      <main style={{ maxWidth: 1520, margin: "0 auto", padding: 24 }}>
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ fontSize: 12, letterSpacing: "0.18em", color: "#8f948d" }}>SCHEDULE</div>
-          <h1 style={{ fontSize: 42, margin: "8px 0 12px", lineHeight: 1.1 }}>時間軸議程表</h1>
-          <p style={{ color: "#7a7f86", margin: 0 }}>同時有多場次時會往右延伸，支援左右滑動查看。</p>
-        </div>
-
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 18, overflowX: isMobile ? "auto" : "visible", paddingBottom: isMobile ? 4 : 0 }}>
-          {dayOptions.map((day) => (
-            <button
-              key={day.key}
-              onClick={() => setSelectedDay(day.key)}
-              style={{
-                border: "1px solid #d8d0c5",
-                background: selectedDay === day.key ? "#4f6475" : "#f8f6f2",
-                color: selectedDay === day.key ? "#f9f7f3" : "#3c4c59",
-                borderRadius: 18,
-                padding: "12px 16px",
-                cursor: "pointer",
-                boxShadow: selectedDay === day.key ? "0 8px 18px rgba(79,100,117,0.18)" : "none",
-              }}
-            >
-              <div style={{ fontSize: 12, opacity: 0.82 }}>{day.label}</div>
-              <div style={{ fontWeight: 700 }}>{day.date}</div>
-            </button>
-          ))}
-        </div>
-
+      <main style={{ maxWidth: 1200, margin: "0 auto", padding: 20 }}>
         <div
           style={{
             display: "grid",
-            gap: 16,
-            gridTemplateColumns: isMobile ? "1fr" : "minmax(240px, 320px) 1fr",
-            marginBottom: 22,
+            gridTemplateColumns: "minmax(280px, 380px) 1fr",
+            gap: 18,
+            marginBottom: 24,
           }}
         >
           <div
             style={{
-              background: "#f8f6f2",
-              border: "1px solid #ddd7ce",
-              borderRadius: 28,
-              padding: 20,
+              background: "#faf7f2",
+              border: "1px solid #ddd6cb",
+              borderRadius: 24,
+              padding: 18,
             }}
           >
-            <div style={{ fontSize: 14, color: "#8d918c" }}>目前顯示</div>
-            <div style={{ fontSize: 30, fontWeight: 700 }}>{currentDay.label}</div>
-            <div style={{ color: "#7b8077" }}>{currentDay.date}</div>
+            <div style={{ fontSize: 14, color: "#868c92", marginBottom: 10 }}>姓名搜尋</div>
+            <input
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setPickedPerson("");
+              }}
+              placeholder="輸入人名，例如：彥儒、少杰、思妤"
+              style={{
+                width: "100%",
+                height: 46,
+                borderRadius: 14,
+                border: "1px solid #d6cec3",
+                padding: "0 14px",
+                boxSizing: "border-box",
+                fontSize: 15,
+                background: "#fffdf9",
+              }}
+            />
+            <div style={{ marginTop: 12, fontSize: 13, color: "#8a9097" }}>
+              目前查詢：{activePerson || "尚未指定人名，顯示本日全部任務"}
+            </div>
           </div>
 
           <div
             style={{
-              background: "#f8f6f2",
-              border: "1px solid #ddd7ce",
-              borderRadius: 28,
-              padding: 20,
+              background: "#faf7f2",
+              border: "1px solid #ddd6cb",
+              borderRadius: 24,
+              padding: 18,
             }}
           >
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="搜尋講題、講者、教室、場次類型"
-              style={{
-                width: "100%",
-                height: 48,
-                borderRadius: 16,
-                border: "1px solid #d6cfc5",
-                padding: "0 14px",
-                fontSize: 14,
-                boxSizing: "border-box",
-                background: "#fffdf9",
-              }}
-            />
+            <div style={{ fontSize: 14, color: "#868c92", marginBottom: 12 }}>快速點選人員</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10, maxHeight: 150, overflowY: "auto" }}>
+              {allPeople.map((name) => (
+                <button
+                  key={name}
+                  onClick={() => {
+                    setPickedPerson(name);
+                    setQuery(name);
+                  }}
+                  style={{
+                    border: "1px solid #d8d0c5",
+                    background: activePerson === name ? "#cad6d2" : "#f4efe8",
+                    color: "#445461",
+                    borderRadius: 999,
+                    padding: "8px 12px",
+                    cursor: "pointer",
+                    fontSize: 14,
+                  }}
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        <div style={{ display: "grid", gap: 30 }}>
-          {groupedByTime.map(([time, items], groupIndex) => (
+        {activePerson ? (
+          <div
+            style={{
+              background: "#faf7f2",
+              border: "1px solid #ddd6cb",
+              borderRadius: 28,
+              padding: 20,
+              marginBottom: 24,
+            }}
+          >
+            <div style={{ fontSize: 14, color: "#868c92", marginBottom: 8 }}>個人總覽</div>
+            <div style={{ fontSize: 30, fontWeight: 800, marginBottom: 16 }}>{activePerson}</div>
+            <div style={{ display: "grid", gap: 18 }}>
+              {groupedAllDays.map((group) => (
+                <div key={group.key}>
+                  <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 10 }}>{group.label}</div>
+                  {group.items.length === 0 ? (
+                    <div style={{ color: "#8a9097", fontSize: 14 }}>這一天沒有查到排班。</div>
+                  ) : (
+                    <div style={{ display: "grid", gap: 10 }}>
+                      {group.items.map((item) => (
+                        <div
+                          key={item.id}
+                          style={{
+                            background: "#f4efe8",
+                            border: "1px solid #ddd6cb",
+                            borderRadius: 18,
+                            padding: 14,
+                          }}
+                        >
+                          <div style={{ fontWeight: 700, marginBottom: 6 }}>
+                            {item.start} - {item.end}｜{item.location}
+                          </div>
+                          <div style={{ color: "#50606e", marginBottom: 4 }}>{item.task}</div>
+                          <div style={{ color: "#7d848b", fontSize: 14 }}>{item.detail}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        <div style={{ display: "grid", gap: 16 }}>
+          {visibleDuties.map((duty) => (
             <div
-              key={time}
+              key={duty.id}
               style={{
-                display: "grid",
-                gridTemplateColumns: isMobile ? "1fr" : "190px 1fr",
-                gap: isMobile ? 10 : 18,
-                alignItems: "start",
+                background: "#faf7f2",
+                border: "1px solid #ddd6cb",
+                borderRadius: 26,
+                padding: 20,
+                boxShadow: "0 10px 20px rgba(95, 103, 111, 0.06)",
               }}
             >
-              <div
-                style={{
-                  position: "relative",
-                  minHeight: isMobile ? "auto" : 160,
-                  display: isMobile ? "flex" : "block",
-                  alignItems: isMobile ? "center" : undefined,
-                  gap: isMobile ? 12 : undefined,
-                  paddingLeft: isMobile ? 6 : 0,
-                }}
-              >
-                <div style={{ fontSize: isMobile ? 22 : 30, fontWeight: 800, lineHeight: 1 }}>
-                  {time}
-                </div>
-                <div style={{ fontSize: 13, color: "#8b8f93", marginTop: isMobile ? 0 : 8 }}>
-                  開始時間
-                </div>
-                <div
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+                <span
                   style={{
-                    position: isMobile ? "relative" : "absolute",
-                    right: isMobile ? "auto" : 12,
-                    top: isMobile ? "auto" : 2,
-                    width: isMobile ? 12 : 18,
-                    height: isMobile ? 12 : 18,
+                    background: "#d7e0db",
+                    color: "#4d6157",
+                    border: "1px solid #c4d0ca",
                     borderRadius: 999,
-                    background: "#233852",
-                    boxShadow: isMobile ? "0 0 0 4px #e5e0d6" : "0 0 0 6px #e5e0d6",
-                    marginLeft: isMobile ? 4 : 0,
-                  }}
-                />
-                {groupIndex !== groupedByTime.length - 1 ? (
-                  <div
-                    style={{
-                      position: isMobile ? "relative" : "absolute",
-                      right: isMobile ? "auto" : 20,
-                      top: isMobile ? "auto" : 24,
-                      bottom: isMobile ? "auto" : -42,
-                      width: isMobile ? 36 : 3,
-                      height: isMobile ? 2 : "auto",
-                      borderRadius: 999,
-                      background: "#c9cfda",
-                      marginLeft: isMobile ? 2 : 0,
-                    }}
-                  />
-                ) : null}
-              </div>
-
-              <div
-                style={{
-                  overflowX: "auto",
-                  paddingBottom: 6,
-                  marginLeft: isMobile ? 0 : undefined,
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    gap: isMobile ? 12 : 18,
-                    minWidth: isMobile
-                      ? items.length > 1
-                        ? `${items.length * 264}px`
-                        : mobileTimelineWidth
-                      : items.length > 1
-                        ? `${items.length * 360}px`
-                        : "unset",
-                    alignItems: "stretch",
+                    padding: "5px 10px",
+                    fontSize: 12,
                   }}
                 >
-                  {items.map((session) => {
-                    const palette = typeColors[session.type];
-                    return (
-                      <button
-                        key={session.id}
-                        onClick={() => setSelectedSession(session)}
-                        style={{
-                          flex: isMobile
-                            ? items.length > 1
-                              ? "0 0 252px"
-                              : "0 0 100%"
-                            : "0 0 340px",
-                          minHeight: isMobile ? 140 : 170,
-                          textAlign: "left",
-                          background: "#f8f6f2",
-                          border: "1px solid #d9d4cb",
-                          borderRadius: 28,
-                          padding: isMobile ? 16 : 22,
-                          cursor: "pointer",
-                          boxShadow: "0 10px 20px rgba(107,116,130,0.08)",
-                          boxSizing: "border-box",
-                        }}
-                      >
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
-                          <span
-                            style={{
-                              fontSize: 12,
-                              color: palette.text,
-                              background: palette.bg,
-                              border: `1px solid ${palette.border}`,
-                              padding: "5px 10px",
-                              borderRadius: 999,
-                            }}
-                          >
-                            {session.type}
-                          </span>
-                          <span
-                            style={{
-                              fontSize: 12,
-                              color: "#586271",
-                              background: "#f5f2ed",
-                              border: "1px solid #d6cec3",
-                              padding: "5px 10px",
-                              borderRadius: 999,
-                            }}
-                          >
-                            {formatDuration(session.start, session.end)}
-                          </span>
-                          <span
-                            style={{
-                              fontSize: 12,
-                              color: "#586271",
-                              background: "#f5f2ed",
-                              border: "1px solid #d6cec3",
-                              padding: "5px 10px",
-                              borderRadius: 999,
-                            }}
-                          >
-                            {session.room || "—"}
-                          </span>
-                        </div>
-
-                        <div style={{ fontSize: 15, color: "#7e857f", marginBottom: 10 }}>{session.track}</div>
-                        <div style={{ fontSize: isMobile ? 20 : 26, fontWeight: 800, lineHeight: 1.25, marginBottom: 12 }}>
-                          {session.title}
-                        </div>
-                        <div style={{ color: "#6b7481", lineHeight: 1.7, fontSize: 15, marginBottom: 10 }}>
-                          {session.speaker || "此場次暫無講者資訊"}
-                        </div>
-                        <div style={{ color: "#8a9097", lineHeight: 1.8, fontSize: 15 }}>{session.description}</div>
-                      </button>
-                    );
-                  })}
-                </div>
+                  {duty.start} - {duty.end}
+                </span>
+                <span
+                  style={{
+                    background: "#ede7de",
+                    color: "#6c685f",
+                    border: "1px solid #dbd2c6",
+                    borderRadius: 999,
+                    padding: "5px 10px",
+                    fontSize: 12,
+                  }}
+                >
+                  {duty.location}
+                </span>
               </div>
+
+              <div style={{ fontSize: 24, fontWeight: 800, marginBottom: 10 }}>{duty.task}</div>
+              <div style={{ color: "#52616f", lineHeight: 1.8, marginBottom: 12 }}>{duty.detail}</div>
+              <div style={{ color: "#7b8188", fontSize: 14, lineHeight: 1.8 }}>
+                人員：{duty.people.join("、")}
+              </div>
+              {duty.backup ? (
+                <div style={{ color: "#8a7c73", fontSize: 14, marginTop: 8 }}>備案：{duty.backup}</div>
+              ) : null}
             </div>
           ))}
         </div>
 
-        {groupedByTime.length === 0 && (
+        {visibleDuties.length === 0 ? (
           <div
             style={{
-              background: "#f8f6f2",
-              border: "1px solid #ddd7ce",
+              marginTop: 20,
+              background: "#faf7f2",
+              border: "1px solid #ddd6cb",
               borderRadius: 24,
-              padding: 30,
+              padding: 26,
               textAlign: "center",
               color: "#7d838c",
-              marginTop: 16,
             }}
           >
-            找不到符合條件的議程。
+            這個人名在目前日期沒有查到任務。
           </div>
-        )}
+        ) : null}
       </main>
-
-      {selectedSession && (
-        <div
-          onClick={() => setSelectedSession(null)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(31,40,52,0.38)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 20,
-            zIndex: 30,
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              width: "100%",
-              maxWidth: 820,
-              background: "#faf7f2",
-              borderRadius: 28,
-              overflow: "hidden",
-              boxShadow: "0 24px 50px rgba(0,0,0,0.18)",
-            }}
-          >
-            <div style={{ padding: 26, borderBottom: "1px solid #e3ddd3", background: "#f3efe8" }}>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
-                <span
-                  style={{
-                    fontSize: 12,
-                    color: typeColors[selectedSession.type].text,
-                    background: typeColors[selectedSession.type].bg,
-                    border: `1px solid ${typeColors[selectedSession.type].border}`,
-                    padding: "5px 10px",
-                    borderRadius: 999,
-                  }}
-                >
-                  {selectedSession.type}
-                </span>
-                <span style={{ fontSize: 12, border: "1px solid #d6cec3", padding: "5px 10px", borderRadius: 999 }}>
-                  {selectedSession.day === "day1" ? "DAY 1" : "DAY 2"}
-                </span>
-                <span style={{ fontSize: 12, border: "1px solid #d6cec3", padding: "5px 10px", borderRadius: 999 }}>
-                  {formatDuration(selectedSession.start, selectedSession.end)}
-                </span>
-                <span style={{ fontSize: 12, border: "1px solid #d6cec3", padding: "5px 10px", borderRadius: 999 }}>
-                  {selectedSession.room || "—"}
-                </span>
-              </div>
-
-              <h2 style={{ margin: "0 0 10px", fontSize: 30, lineHeight: 1.3 }}>{selectedSession.title}</h2>
-              <div style={{ color: "#67707c", lineHeight: 1.8 }}>{selectedSession.speaker || "此場次暫無講者資訊"}</div>
-            </div>
-
-            <div style={{ padding: 26 }}>
-              <div
-                style={{
-                  display: "grid",
-                  gap: 12,
-                  gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))",
-                }}
-              >
-                <div style={{ background: "#f3efe8", borderRadius: 18, padding: 16 }}>
-                  <div style={{ fontSize: 13, color: "#8a9097", marginBottom: 6 }}>時間</div>
-                  <div style={{ fontWeight: 700 }}>{formatDuration(selectedSession.start, selectedSession.end)}</div>
-                </div>
-                <div style={{ background: "#f3efe8", borderRadius: 18, padding: 16 }}>
-                  <div style={{ fontSize: 13, color: "#8a9097", marginBottom: 6 }}>地點</div>
-                  <div style={{ fontWeight: 700 }}>{selectedSession.room || "—"}</div>
-                </div>
-              </div>
-
-              <div style={{ marginTop: 24 }}>
-                <h3 style={{ margin: "0 0 10px" }}>場次介紹</h3>
-                <p style={{ margin: 0, lineHeight: 1.9, color: "#45515e" }}>{selectedSession.description}</p>
-              </div>
-
-              {selectedSession.note ? (
-                <div style={{ marginTop: 24 }}>
-                  <h3 style={{ margin: "0 0 10px" }}>備註</h3>
-                  <p style={{ margin: 0, lineHeight: 1.9, color: "#45515e" }}>{selectedSession.note}</p>
-                </div>
-              ) : null}
-
-              <div style={{ marginTop: 24 }}>
-                <button
-                  onClick={() => setSelectedSession(null)}
-                  style={{
-                    height: 44,
-                    padding: "0 18px",
-                    borderRadius: 14,
-                    border: "none",
-                    background: "#4f6475",
-                    color: "#f8f6f2",
-                    cursor: "pointer",
-                  }}
-                >
-                  關閉
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
